@@ -1029,20 +1029,20 @@ public:
                     float y2 = cy - 0.1 * matV1.at<float>(0, 1);
                     float z2 = cz - 0.1 * matV1.at<float>(0, 2);
 
-                    float a012 = sqrt(((x0 - x1)*(y0 - y2) - (x0 - x2)*(y0 - y1)) * ((x0 - x1)*(y0 - y2) - (x0 - x2)*(y0 - y1)) 
-                                    + ((x0 - x1)*(z0 - z2) - (x0 - x2)*(z0 - z1)) * ((x0 - x1)*(z0 - z2) - (x0 - x2)*(z0 - z1)) 
-                                    + ((y0 - y1)*(z0 - z2) - (y0 - y2)*(z0 - z1)) * ((y0 - y1)*(z0 - z2) - (y0 - y2)*(z0 - z1)));
+                    float z3 = ((x0 - x1)*(y0 - y2) - (x0 - x2)*(y0 - y1));
+                    float y3 = - ((x0 - x1)*(z0 - z2) - (x0 - x2)*(z0 - z1));
+                    float x3 = ((y0 - y1)*(z0 - z2) - (y0 - y2)*(z0 - z1));
 
-                    float l12 = sqrt((x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2) + (z1 - z2)*(z1 - z2));
 
-                    float la = ((y1 - y2)*((x0 - x1)*(y0 - y2) - (x0 - x2)*(y0 - y1)) 
-                              + (z1 - z2)*((x0 - x1)*(z0 - z2) - (x0 - x2)*(z0 - z1))) / a012 / l12;
+	                float a012 = sqrt(z3 * z3 + y3 * y3 + x3 * x3);
 
-                    float lb = -((x1 - x2)*((x0 - x1)*(y0 - y2) - (x0 - x2)*(y0 - y1)) 
-                               - (z1 - z2)*((y0 - y1)*(z0 - z2) - (y0 - y2)*(z0 - z1))) / a012 / l12;
+	                float l12 = sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) + (z1 - z2) * (z1 - z2));
 
-                    float lc = -((x1 - x2)*((x0 - x1)*(z0 - z2) - (x0 - x2)*(z0 - z1)) 
-                               + (y1 - y2)*((y0 - y1)*(z0 - z2) - (y0 - y2)*(z0 - z1))) / a012 / l12;
+                    float la = ((y1 - y2)*z3 + (z1 - z2)*(-y3)) / a012 / l12;
+
+                    float lb = -((x1 - x2)*z3 - (z1 - z2)*x3) / a012 / l12;
+
+                    float lc = ((x1 - x2)*(y3) - (y1 - y2)*x3) / a012 / l12;
 
                     float ld2 = a012 / l12;
 
