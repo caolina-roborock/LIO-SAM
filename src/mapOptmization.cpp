@@ -1167,12 +1167,12 @@ public:
         // yaw = pitch          ---     yaw = roll
 
         // lidar -> camera
-        float srx = sin(transformTobeMapped[1]);
-        float crx = cos(transformTobeMapped[1]);
-        float sry = sin(transformTobeMapped[2]);
-        float cry = cos(transformTobeMapped[2]);
-        float srz = sin(transformTobeMapped[0]);
-        float crz = cos(transformTobeMapped[0]);
+	    float sinx = std::sin(transformTobeMapped[0]);
+	    float cosx = std::cos(transformTobeMapped[0]);
+        float siny = std::sin(transformTobeMapped[1]);
+        float cosy = std::cos(transformTobeMapped[1]);
+        float sinz = std::sin(transformTobeMapped[2]);
+        float cosz = std::cos(transformTobeMapped[2]);
 
         int laserCloudSelNum = laserCloudOri->size();
         if (laserCloudSelNum < 50) {
@@ -1199,18 +1199,18 @@ public:
             coeff.z = coeffSel->points[i].x;
             coeff.intensity = coeffSel->points[i].intensity;
             // in camera
-            float arx = (crx*sry*srz*pointOri.x + crx*crz*sry*pointOri.y - srx*sry*pointOri.z) * coeff.x
-                      + (-srx*srz*pointOri.x - crz*srx*pointOri.y - crx*pointOri.z) * coeff.y
-                      + (crx*cry*srz*pointOri.x + crx*cry*crz*pointOri.y - cry*srx*pointOri.z) * coeff.z;
+            float arx = (cosy*sinz*sinx*pointOri.x + cosy*cosx*sinz*pointOri.y - siny*sinz*pointOri.z) * coeff.x
+                      + (-siny*sinx*pointOri.x - cosx*siny*pointOri.y - cosy*pointOri.z) * coeff.y
+                      + (cosy*cosz*sinx*pointOri.x + cosy*cosz*cosx*pointOri.y - cosz*siny*pointOri.z) * coeff.z;
 
-            float ary = ((cry*srx*srz - crz*sry)*pointOri.x 
-                      + (sry*srz + cry*crz*srx)*pointOri.y + crx*cry*pointOri.z) * coeff.x
-                      + ((-cry*crz - srx*sry*srz)*pointOri.x 
-                      + (cry*srz - crz*srx*sry)*pointOri.y - crx*sry*pointOri.z) * coeff.z;
+            float ary = ((cosz*siny*sinx - cosx*sinz)*pointOri.x 
+                      + (sinz*sinx + cosz*cosx*siny)*pointOri.y + cosy*cosz*pointOri.z) * coeff.x
+                      + ((-cosz*cosx - siny*sinz*sinx)*pointOri.x 
+                      + (cosz*sinx - cosx*siny*sinz)*pointOri.y - cosy*sinz*pointOri.z) * coeff.z;
 
-            float arz = ((crz*srx*sry - cry*srz)*pointOri.x + (-cry*crz-srx*sry*srz)*pointOri.y)*coeff.x
-                      + (crx*crz*pointOri.x - crx*srz*pointOri.y) * coeff.y
-                      + ((sry*srz + cry*crz*srx)*pointOri.x + (crz*sry-cry*srx*srz)*pointOri.y)*coeff.z;
+            float arz = ((cosx*siny*sinz - cosz*sinx)*pointOri.x + (-cosz*cosx-siny*sinz*sinx)*pointOri.y)*coeff.x
+                      + (cosy*cosx*pointOri.x - cosy*sinx*pointOri.y) * coeff.y
+                      + ((sinz*sinx + cosz*cosx*siny)*pointOri.x + (cosx*sinz-cosz*siny*sinx)*pointOri.y)*coeff.z;
             // camera -> lidar
             matA.at<float>(i, 0) = arz;
             matA.at<float>(i, 1) = arx;
@@ -1264,11 +1264,11 @@ public:
         transformTobeMapped[4] += matX.at<float>(4, 0);
         transformTobeMapped[5] += matX.at<float>(5, 0);
 
-        float deltaR = sqrt(
+        double deltaR = sqrt(
                             pow(pcl::rad2deg(matX.at<float>(0, 0)), 2) +
                             pow(pcl::rad2deg(matX.at<float>(1, 0)), 2) +
                             pow(pcl::rad2deg(matX.at<float>(2, 0)), 2));
-        float deltaT = sqrt(
+        double deltaT = sqrt(
                             pow(matX.at<float>(3, 0) * 100, 2) +
                             pow(matX.at<float>(4, 0) * 100, 2) +
                             pow(matX.at<float>(5, 0) * 100, 2));
