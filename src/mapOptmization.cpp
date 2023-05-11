@@ -1186,39 +1186,40 @@ public:
         cv::Mat matAtB(6, 1, CV_32F, cv::Scalar::all(0));
         cv::Mat matX(6, 1, CV_32F, cv::Scalar::all(0));
 
-        PointType pointOri, coeff;
+        PointType pp, cff;
 
         for (int i = 0; i < laserCloudSelNum; i++) {
             // lidar -> camera
-            pointOri.x = laserCloudOri->points[i].y;
-            pointOri.y = laserCloudOri->points[i].z;
-            pointOri.z = laserCloudOri->points[i].x;
+	        pp.x = laserCloudOri->points[i].x;
+	        pp.y = laserCloudOri->points[i].y;
+	        pp.z = laserCloudOri->points[i].z;
+
             // lidar -> camera
-            coeff.x = coeffSel->points[i].y;
-            coeff.y = coeffSel->points[i].z;
-            coeff.z = coeffSel->points[i].x;
-            coeff.intensity = coeffSel->points[i].intensity;
+	        cff.x = coeffSel->points[i].x;
+	        cff.y = coeffSel->points[i].y;
+	        cff.z = coeffSel->points[i].z;
+	        cff.intensity = coeffSel->points[i].intensity;
             // in camera
-            float arx = (cosy*sinz*sinx*pointOri.x + cosy*cosx*sinz*pointOri.y - siny*sinz*pointOri.z) * coeff.x
-                      + (-siny*sinx*pointOri.x - cosx*siny*pointOri.y - cosy*pointOri.z) * coeff.y
-                      + (cosy*cosz*sinx*pointOri.x + cosy*cosz*cosx*pointOri.y - cosz*siny*pointOri.z) * coeff.z;
+            float dres_dy = (cosy*sinz*sinx*pp.y + cosy*cosx*sinz*pp.z - siny*sinz*pp.x) * cff.y
+                      + (-siny*sinx*pp.y - cosx*siny*pp.z - cosy*pp.x) * cff.z
+                      + (cosy*cosz*sinx*pp.y + cosy*cosz*cosx*pp.z - cosz*siny*pp.x) * cff.x;
 
-            float ary = ((cosz*siny*sinx - cosx*sinz)*pointOri.x 
-                      + (sinz*sinx + cosz*cosx*siny)*pointOri.y + cosy*cosz*pointOri.z) * coeff.x
-                      + ((-cosz*cosx - siny*sinz*sinx)*pointOri.x 
-                      + (cosz*sinx - cosx*siny*sinz)*pointOri.y - cosy*sinz*pointOri.z) * coeff.z;
+            float dres_dz = ((cosz*siny*sinx - cosx*sinz)*pp.y
+                      + (sinz*sinx + cosz*cosx*siny)*pp.z + cosy*cosz*pp.x) * cff.y
+                      + ((-cosz*cosx - siny*sinz*sinx)*pp.y
+                      + (cosz*sinx - cosx*siny*sinz)*pp.z - cosy*sinz*pp.x) * cff.x;
 
-            float arz = ((cosx*siny*sinz - cosz*sinx)*pointOri.x + (-cosz*cosx-siny*sinz*sinx)*pointOri.y)*coeff.x
-                      + (cosy*cosx*pointOri.x - cosy*sinx*pointOri.y) * coeff.y
-                      + ((sinz*sinx + cosz*cosx*siny)*pointOri.x + (cosx*sinz-cosz*siny*sinx)*pointOri.y)*coeff.z;
+            float dres_dx = ((cosx*siny*sinz - cosz*sinx)*pp.y + (-cosz*cosx-siny*sinz*sinx)*pp.z)*cff.y
+                      + (cosy*cosx*pp.y - cosy*sinx*pp.z) * cff.z
+                      + ((sinz*sinx + cosz*cosx*siny)*pp.y + (cosx*sinz-cosz*siny*sinx)*pp.z)*cff.x;
             // camera -> lidar
-            matA.at<float>(i, 0) = arz;
-            matA.at<float>(i, 1) = arx;
-            matA.at<float>(i, 2) = ary;
-            matA.at<float>(i, 3) = coeff.z;
-            matA.at<float>(i, 4) = coeff.x;
-            matA.at<float>(i, 5) = coeff.y;
-            matB.at<float>(i, 0) = -coeff.intensity;
+            matA.at<float>(i, 0) = dres_dx;
+            matA.at<float>(i, 1) = dres_dy;
+            matA.at<float>(i, 2) = dres_dz;
+            matA.at<float>(i, 3) = cff.x;
+            matA.at<float>(i, 4) = cff.y;
+            matA.at<float>(i, 5) = cff.z;
+            matB.at<float>(i, 0) = -cff.intensity;
         }
 
         cv::transpose(matA, matAt);
