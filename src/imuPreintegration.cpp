@@ -160,6 +160,7 @@ public:
     std::mutex mtx;
 
     ros::Subscriber subImu;
+	ros::Subscriber subWheel;
     ros::Subscriber subOdometry;
     ros::Publisher pubImuOdometry;
 
@@ -207,9 +208,12 @@ public:
     IMUPreintegration()
     {
         subImu      = nh.subscribe<sensor_msgs::Imu>  (imuTopic,                   2000, &IMUPreintegration::imuHandler,      this, ros::TransportHints().tcpNoDelay());
+	    subWheel    = nh.subscribe<nav_msgs::Odometry>  ("odom_raw",                   2000, &IMUPreintegration::wheelHandler,      this, ros::TransportHints().tcpNoDelay());
         subOdometry = nh.subscribe<nav_msgs::Odometry>("lio_sam/mapping/odometry_incremental", 5,    &IMUPreintegration::odometryHandler, this, ros::TransportHints().tcpNoDelay());
 
         pubImuOdometry = nh.advertise<nav_msgs::Odometry> (odomTopic+"_incremental", 2000);
+
+	    return;
 
         boost::shared_ptr<gtsam::PreintegrationParams> p = gtsam::PreintegrationParams::MakeSharedU(imuGravity);
         p->accelerometerCovariance  = gtsam::Matrix33::Identity(3,3) * pow(imuAccNoise, 2); // acc white noise in continuous
@@ -251,6 +255,7 @@ public:
 
     void odometryHandler(const nav_msgs::Odometry::ConstPtr& odomMsg)
     {
+    	return;
         std::lock_guard<std::mutex> lock(mtx);
 
         double currentCorrectionTime = ROS_TIME(odomMsg);
@@ -454,9 +459,46 @@ public:
 
         return false;
     }
+	void wheelHandler(const nav_msgs::Odometry::ConstPtr& wheel_raw){
+
+		gtsam::Rot3 R(wheel_raw->pose.pose.orientation.w, wheel_raw->pose.pose.orientation.x,
+		              wheel_raw->pose.pose.orientation.y, wheel_raw->pose.pose.orientation.z);
+
+		gtsam::Point3 t(wheel_raw->pose.pose.position.x, wheel_raw->pose.pose.position.y,
+		                wheel_raw->pose.pose.position.z);
+
+		gtsam::NavState currentState(R, t, Eigen::Vector3d {0, 0, 0});
+
+		// publish odometry
+		nav_msgs::Odometry odometry;
+		odometry.header.stamp = wheel_raw->header.stamp;
+		odometry.header.frame_id = odometryFrame;
+		odometry.child_frame_id = "odom_imu";
+
+		// transform imu pose to ldiar
+		gtsam::Pose3 imuPose = gtsam::Pose3(currentState.quaternion(), currentState.position());
+		gtsam::Pose3 lidarPose = imuPose.compose(imu2Lidar);
+
+		odometry.pose.pose.position.x = lidarPose.translation().x();
+		odometry.pose.pose.position.y = lidarPose.translation().y();
+		odometry.pose.pose.position.z = lidarPose.translation().z();
+		odometry.pose.pose.orientation.x = lidarPose.rotation().toQuaternion().x();
+		odometry.pose.pose.orientation.y = lidarPose.rotation().toQuaternion().y();
+		odometry.pose.pose.orientation.z = lidarPose.rotation().toQuaternion().z();
+		odometry.pose.pose.orientation.w = lidarPose.rotation().toQuaternion().w();
+
+		odometry.twist.twist.linear.x = wheel_raw->twist.twist.linear.x;
+		odometry.twist.twist.linear.y = wheel_raw->twist.twist.linear.y;
+		odometry.twist.twist.linear.z = wheel_raw->twist.twist.linear.z;
+		odometry.twist.twist.angular.x = wheel_raw->twist.twist.angular.x;
+		odometry.twist.twist.angular.y = wheel_raw->twist.twist.angular.y;
+		odometry.twist.twist.angular.z = wheel_raw->twist.twist.angular.z;
+		pubImuOdometry.publish(odometry);
+    }
 
     void imuHandler(const sensor_msgs::Imu::ConstPtr& imu_raw)
     {
+	    return;
         std::lock_guard<std::mutex> lock(mtx);
 
         sensor_msgs::Imu thisImu = imuConverter(*imu_raw);
